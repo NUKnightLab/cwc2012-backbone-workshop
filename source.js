@@ -44,7 +44,7 @@ var Router = Backbone.Router.extend({
       return;
     }
 
-    $('#container').html('<h1>Hello World!</h1>');
+    $('#container').html('<h1>Hello ' + window.user.get('name') + '!</h1>');
   }
 });
 
