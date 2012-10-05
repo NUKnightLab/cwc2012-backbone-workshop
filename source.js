@@ -44,7 +44,16 @@ var Router = Backbone.Router.extend({
       return;
     }
 
-    $('#container').html('<h1>Hello ' + window.user.get('name') + '!</h1>');
+    var posts = new PostCollection();
+    posts.fetch();
+    var statusView = new CreateStatusView({model: window.user});
+    var postsView = new PostCollectionView({collection: posts});
+    $('#container')
+        .append(statusView.el)
+        .append('<hr>')
+        .append(postsView.el);
+    statusView.render();
+    postsView.render();
   }
 });
 
@@ -54,7 +63,8 @@ var SignupView = Backbone.View.extend({
     'click button': 'submit'
   },
   render: function(){
-    this.$el.html(this.template);
+    var html = Mustache.render(this.template, this.model.attributes);
+    this.$el.html(html);
   },
   submit: function(){
     var name = this.$('input').val();
@@ -69,19 +79,48 @@ var UserModel = Backbone.Model.extend({
   localStorage: new Store('User')
 });
 
-var CreateStatusView = Backbone.View.extend({
-});
-
 var PostModel = Backbone.Model.extend({
 });
 
 var PostCollection = Backbone.Collection.extend({
+    //sync: function(){ alert('syncing PostCollection') }
+    model: PostModel,
+    localStorage: new Store('PostCollection')
 });
 
 var PostView = Backbone.View.extend({
+  template: '{{ username }}',
+  events: {
+  },
+  render: function(){
+    var context = {
+        username: window.user.get('name'),
+    };
+    var html = Mustache.render(this.template, context);
+    this.$el.html(html);
+  },
 });
 
 var PostCollectionView = Backbone.View.extend({
+    className: 'posts',
+    initialize: function() {
+        this.collection.bind('add', this.postAdded, this.model)
+    },
+    postAdded: function(model){
+        var postView = new PostView({ model: model });
+        this.renderView(postView);
+    },
+    renderView: function(view) {
+        view.render()
+        this.$el.prepend(view.el)
+    },
+    render: function() {
+        var view = this;
+        this.collection.each(function(post){
+            var postView = new PostView({model: post});
+            view.renderView(postView);
+        });
+    }
 });
 
 var CreateCommentView = Backbone.View.extend({
@@ -95,3 +134,29 @@ var CommentView = Backbone.View.extend({
 
 var CommentCollectionView = Backbone.View.extend({
 });
+
+var CreateStatusView = Backbone.View.extend({
+  template: '<form class="form-inline">{{ username }} <input type="text" placeholder="Status" /><button class="btn btn-post">Post</button></form><button class="btn btn-logout">logout</button>',
+  events: {
+    'click button.btn-post': 'submit',
+    'click button.btn-logout': 'logout'
+  },
+  render: function(){
+    var context = {
+        username: window.user.get('name')
+    };
+    var html = Mustache.render(this.template, context);
+    this.$el.html(html);
+  },
+  submit: function(){
+    var status = this.$('input').val();
+    window.post.set('status', status);
+    window.post.save();
+
+    window.navigate('/timeline');
+  },
+  logout: function() {
+    alert('logout');
+  }
+});
+
